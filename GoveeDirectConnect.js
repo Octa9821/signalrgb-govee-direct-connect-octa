@@ -4,6 +4,8 @@ import GoveeDevice from "./GoveeDevice.test.js";
 import GoveeController from "./GoveeController.test.js";
 import GoveeDeviceUI from "./GoveeDeviceUI.test.js";
 
+const FORCED_PROTOCOL = 1;
+
 export function Name() { return "Govee Direct Connect - Octa"; }
 export function Version() { return "2.1.4"; }
 export function Type() { return "network"; }
@@ -93,7 +95,7 @@ export function DiscoveryService() {
         let goveeLightData = {
             ip: ip,
             leds: parseInt(leds),
-            type: parseInt(type),
+            type: FORCED_PROTOCOL,
             split: split,
             uniquePort: this.getUniquePort()
         };

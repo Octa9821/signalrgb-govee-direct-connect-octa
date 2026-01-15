@@ -1,5 +1,7 @@
 import udp from "@SignalRGB/udp";
 
+const PROTOCOL_DREAMVIEW = 1;
+
 export default class GoveeController
 {
     constructor(goveeDevice)
@@ -18,9 +20,10 @@ export default class GoveeController
 
     validateDeviceUpdate(leds, type, split, ip)
     {
+        const forcedType = PROTOCOL_DREAMVIEW;
         return (
             leds != this.device.leds || 
-            type != this.device.type || 
+            forcedType != this.device.type || 
             split != this.device.split || 
             ip != this.device.ip
         );
@@ -30,7 +33,7 @@ export default class GoveeController
     {
         // Change the device data
         this.device.leds = leds;
-        this.device.type = type;
+        this.device.type = PROTOCOL_DREAMVIEW;
         this.device.split = split;
 
         // We have to do a little more if the IP has changed
