@@ -176,7 +176,11 @@ export default class GoveeDevice {
         this.id = id;
         this.ip = service.getSetting(id, 'ip');
         this.leds = service.getSetting(id, 'leds');
-        this.type = service.getSetting(id, 'type');
+
+        // FORCE OCTA FIX: Ignore saved type, force DreamView
+        this.type = 1;
+        // this.type = service.getSetting(id, 'type'); // <--- Comment this out
+
         this.split = service.getSetting(id, 'split');
         this.sku = service.getSetting(id, 'sku');
         this.firmware = service.getSetting(id, 'firmware');
