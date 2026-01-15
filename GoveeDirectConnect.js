@@ -9,18 +9,17 @@ export function Version() { return "2.1.4"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
-export function DefaultPosition() {return [0, 70]; }
-export function DefaultScale(){return 1.0;}
-export function DefaultComponentBrand() { return "Govee";}
-export function ControllableParameters()
-{
-	return [
-		{"property":"lightingMode", "group":"lighting", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced", "Test Pattern"], "default":"Canvas"},
-		{"property":"forcedColor", "group":"lighting", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
-		{"property":"turnOff", "group":"lighting", "label":"On shutdown", "type":"combobox", "values":["Release control", "Single color", "Turn device off"], "default":"Turn device off"},
-        {"property":"shutDownColor", "group":"lighting", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"},
-        {"property":"frameDelay", "group":"settings", "label":"Delay between frames", "type":"combobox", "values":["0", "10", "50", "100"], "default":"0"}
-	];
+export function DefaultPosition() { return [0, 70]; }
+export function DefaultScale() { return 1.0; }
+export function DefaultComponentBrand() { return "Govee"; }
+export function ControllableParameters() {
+    return [
+        { "property": "lightingMode", "group": "lighting", "label": "Lighting Mode", "type": "combobox", "values": ["Canvas", "Forced", "Test Pattern"], "default": "Canvas" },
+        { "property": "forcedColor", "group": "lighting", "label": "Forced Color", "min": "0", "max": "360", "type": "color", "default": "#009bde" },
+        { "property": "turnOff", "group": "lighting", "label": "On shutdown", "type": "combobox", "values": ["Release control", "Single color", "Turn device off"], "default": "Turn device off" },
+        { "property": "shutDownColor", "group": "lighting", "label": "Shutdown Color", "min": "0", "max": "360", "type": "color", "default": "#8000FF" },
+        { "property": "frameDelay", "group": "settings", "label": "Delay between frames", "type": "combobox", "values": ["0", "10", "50", "100"], "default": "0" }
+    ];
 }
 
 export function SubdeviceController() { return false; }
@@ -28,31 +27,32 @@ export function SubdeviceController() { return false; }
 let goveeUI;
 let lastRender = 0;
 
-export function Initialize()
-{
+export function Initialize() {
     device.log('Creating Govee Device UI');
-	goveeUI = new GoveeDeviceUI(device, controller);
+
+    // --- OCTA PERMANENT FIX ---
+    device.sendMode = "DreamView";
+    device.log("FORCE OVERRIDE: Switched to DreamView Protocol (Local)");
+    // --------------------------
+
+    goveeUI = new GoveeDeviceUI(device, controller);
 }
 
-export function Render()
-{
+export function Render() {
     let now = Date.now();
     goveeUI.render(lightingMode, forcedColor, now, frameDelay);
 }
 
-export function Shutdown(SystemSuspending)
-{
+export function Shutdown(SystemSuspending) {
     device.log('Shutting down');
     goveeUI.shutDown(turnOff, shutDownColor);
 }
 
-export function Validate()
-{
+export function Validate() {
     return true;
 }
 
-export function DiscoveryService()
-{
+export function DiscoveryService() {
     service.log("You're running version " + Version());
     this.IconUrl = getGoveeLogo();
 
@@ -60,7 +60,7 @@ export function DiscoveryService()
     this.PollInterval = 5000;
 
     this.lastPort = null;
-    
+
     // Disabled so we don't use the built in broadcasting
     // this.UdpBroadcastPort = 4003;
     // this.UdpListenPort = 4002;
@@ -68,7 +68,7 @@ export function DiscoveryService()
     this.discoveredDeviceData = {};
     this.GoveeDeviceControllers = {};
 
-    this.Initialize = function() {
+    this.Initialize = function () {
         this.lastPort = service.getSetting('ipCache', 'lastUniquePort');
         if (!this.lastPort) this.getUniquePort();
 
@@ -76,13 +76,11 @@ export function DiscoveryService()
         this.devicesLoaded = false;
 
         this.startSocketServer();
-	}
+    }
 
-    this.startSocketServer = function()
-    {
+    this.startSocketServer = function () {
         // Start the udp server
-        if (!this.udpServer)
-        {
+        if (!this.udpServer) {
             this.udpServer = udp.createSocket();
             this.udpServer.on('message', this.handleSocketMessage.bind(this));
             this.udpServer.on('error', this.handleSocketError.bind(this));
@@ -91,9 +89,8 @@ export function DiscoveryService()
         }
     }
 
-    this.forceDiscover = function(ip, leds, type, split)
-    {
-        let goveeLightData = { 
+    this.forceDiscover = function (ip, leds, type, split) {
+        let goveeLightData = {
             ip: ip,
             leds: parseInt(leds),
             type: parseInt(type),
@@ -107,8 +104,7 @@ export function DiscoveryService()
         this.Update(true);
     }
 
-    this.loadForcedDevices = function()
-    {
+    this.loadForcedDevices = function () {
         // Load the cached ips
         let ipCacheJSON = service.getSetting('ipCache', 'cache');
         let ipCache = {};
@@ -116,25 +112,21 @@ export function DiscoveryService()
 
         // Get all cached ips
         let cachedIps = Object.keys(ipCache);
-        
-        for(let cachedIp of cachedIps)
-        {
+
+        for (let cachedIp of cachedIps) {
             // If Controller is not yet created
-            if (!this.GoveeDeviceControllers.hasOwnProperty(cachedIp))
-            {
+            if (!this.GoveeDeviceControllers.hasOwnProperty(cachedIp)) {
                 // Create the controller and add it
                 this.GoveeDeviceControllers[cachedIp] = this.createController(ipCache[cachedIp]);
             }
 
             let goveeController = this.GoveeDeviceControllers[cachedIp];
-            
-            if (!service.hasController(cachedIp))
-            {
+
+            if (!service.hasController(cachedIp)) {
                 service.addController(goveeController);
                 // Announce the controller as a device
                 service.announceController(goveeController);
-            } else
-            {
+            } else {
                 service.updateController(goveeController);
             }
         }
@@ -142,70 +134,57 @@ export function DiscoveryService()
         this.devicesLoaded = true;
     }
 
-    this.Update = function(force)
-    {
+    this.Update = function (force) {
         let diff = Date.now() - discovery.lastPollTime;
 
-        if(diff > discovery.PollInterval || force === true)
-        {
-			discovery.lastPollTime = Date.now();
+        if (diff > discovery.PollInterval || force === true) {
+            discovery.lastPollTime = Date.now();
 
-            if (!this.devicesLoaded || force === true)
-            {
+            if (!this.devicesLoaded || force === true) {
                 this.loadForcedDevices();
             }
-		}
+        }
     }
 
-    this.handleSocketError = function(err, message)
-    {
+    this.handleSocketError = function (err, message) {
         service.log(message);
     }
 
-    this.handleSocketMessage = function(value)
-    {
+    this.handleSocketMessage = function (value) {
         if (!value) return;
         const ip = this.getIPv4(value.address);
 
-        if (this.GoveeDeviceControllers.hasOwnProperty(ip))
-        {
+        if (this.GoveeDeviceControllers.hasOwnProperty(ip)) {
             let goveeController = this.GoveeDeviceControllers[ip];
             goveeController.relaySocketMessage(value, this);
-        } else
-        {
+        } else {
             service.log(`Cannot find controller for ${ip}`);
         }
-	};
+    };
 
-    this.getIPv4 = function(address)
-    {
+    this.getIPv4 = function (address) {
         const ipv4Pattern = /(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)/;
         const match = address.match(ipv4Pattern);
         return match ? match[0] : null;
     }
 
-    this.Delete = function(ip)
-    {
+    this.Delete = function (ip) {
         service.log('Deleting controller ' + ip);
         this.removeController(ip);
         this.saveCache();
         this.Update(true);
     }
 
-    this.changeIp = function(oldIp, newIp)
-    {
-        if (this.GoveeDeviceControllers.hasOwnProperty(oldIp))
-        {
+    this.changeIp = function (oldIp, newIp) {
+        if (this.GoveeDeviceControllers.hasOwnProperty(oldIp)) {
             this.GoveeDeviceControllers[newIp] = this.GoveeDeviceControllers[oldIp];
             this.Delete(oldIp);
         }
     }
 
-    this.saveCache = function()
-    {
+    this.saveCache = function () {
         let ipCache = {};
-        for(let ip of Object.keys(this.GoveeDeviceControllers))
-        {
+        for (let ip of Object.keys(this.GoveeDeviceControllers)) {
             let goveeController = this.GoveeDeviceControllers[ip];
             ipCache[goveeController.id] = goveeController.toCacheJSON();
         }
@@ -213,21 +192,17 @@ export function DiscoveryService()
         service.saveSetting('ipCache', 'cache', JSON.stringify(ipCache));
     }
 
-    this.removeController = function(ip)
-    {
+    this.removeController = function (ip) {
         let goveeController = this.GoveeDeviceControllers[ip];
         service.removeController(goveeController);
         delete this.GoveeDeviceControllers[ip];
     }
 
-    this.getUniquePort = function()
-    {
-        
-        if (!this.lastPort || this.lastPort < 46920)
-        {
+    this.getUniquePort = function () {
+
+        if (!this.lastPort || this.lastPort < 46920) {
             this.lastPort = 46920;
-        } else
-        {
+        } else {
             this.lastPort++;
         }
 
@@ -237,24 +212,20 @@ export function DiscoveryService()
         return this.lastPort;
     }
 
-    this.createController = function(cacheData)
-    {
+    this.createController = function (cacheData) {
         service.log('Creating controller: ' + cacheData.ip);
-        
+
         let goveeDevice;
 
-        if (cacheData.id)
-        {
+        if (cacheData.id) {
             goveeDevice = (new GoveeDevice).load(cacheData.id);
 
             // Add this for devices with the old settings
-            if (!goveeDevice.uniquePort)
-            {
+            if (!goveeDevice.uniquePort) {
                 goveeDevice.uniquePort = this.getUniquePort();
                 goveeDevice.save();
             }
-        } else
-        {
+        } else {
             goveeDevice = new GoveeDevice(cacheData);
         }
 
@@ -266,8 +237,7 @@ export function DiscoveryService()
         return goveeController;
     }
 
-    this.updatedController = function(goveeController)
-    {
+    this.updatedController = function (goveeController) {
         service.log(`Controller ${goveeController.id} data updated`);
         this.saveCache();
         service.removeController(goveeController);
@@ -281,8 +251,7 @@ export function DiscoveryService()
     }
 }
 
-function getGoveeLogo()
-{
+function getGoveeLogo() {
     return goveeProducts['default'].base64Image;
 }
 
