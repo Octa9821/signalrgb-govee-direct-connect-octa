@@ -1,4 +1,4 @@
-import {encode, decode} from "@SignalRGB/base64";
+import { encode, decode } from "@SignalRGB/base64";
 import udp from "@SignalRGB/udp";
 
 const PROTOCOL_SINGLE_COLOR = 3;
@@ -23,16 +23,13 @@ const GRADIENT_OFF_SKUS = [
     "H8069"
 ];
 
-export default class GoveeDevice
-{
-    constructor(data)
-    {
-        if (data)
-        {
+export default class GoveeDevice {
+    constructor(data) {
+        if (data) {
             this.id = (data.hasOwnProperty('id')) ? data.id : null;
             this.ip = data.ip;
             this.leds = parseInt(data.leds);
-            this.type = parseInt(data.type);
+            this.type = 1;
             this.split = data.split ? parseInt(data.split) : 1;
             this.sku = data.hasOwnProperty('sku') ? data.sku : null;
             this.firmware = data.hasOwnProperty('bleVersionSoft') ? data.bleVersionSoft : null;
@@ -41,7 +38,7 @@ export default class GoveeDevice
         }
 
         this.testMode = (!this.id);
-        
+
         this.onOff = 0;
         this.pt = null;
         this.port = 4003;
@@ -64,15 +61,11 @@ export default class GoveeDevice
         this.shuttingDown = false;
     }
 
-    handleSocketMessage(message)
-    {
-        try
-        {
+    handleSocketMessage(message) {
+        try {
             let goveeResponse = JSON.parse(message.data);
-            if (goveeResponse.hasOwnProperty('msg'))
-            {
-                switch(goveeResponse.msg.cmd)
-                {
+            if (goveeResponse.hasOwnProperty('msg')) {
+                switch (goveeResponse.msg.cmd) {
                     case 'scan':
                         this.update(goveeResponse.msg.data);
                         break;
@@ -89,40 +82,33 @@ export default class GoveeDevice
                         break;
                 }
             }
-        } catch(err)
-        {
+        } catch (err) {
             this.log(err.message);
         }
     }
 
-    handleSocketError(errorId, errorMessage)
-    {
+    handleSocketError(errorId, errorMessage) {
         this.log(errorMessage);
     }
 
-    handleListening()
-    {
+    handleListening() {
         const address = this.udpServer.address();
         this.log(`Started listening on`);
         this.log(address);
     }
 
-    handleConnection()
-    {
+    handleConnection() {
         // this.log('Connected to');
         // this.log(this.udpServer.remoteAddress());
     }
 
-    disconnectSocket()
-    {
+    disconnectSocket() {
         this.udpServer.close();
         this.udpServer = null;
     }
 
-    setupUdpServer()
-    {
-        if (this.uniquePort)
-        {
+    setupUdpServer() {
+        if (this.uniquePort) {
             if (this.udpServer) return;
 
             this.udpServer = udp.createSocket();
@@ -137,20 +123,16 @@ export default class GoveeDevice
         }
     }
 
-    stopUdpServer()
-    {
-        if (this.udpServer)
-        {
+    stopUdpServer() {
+        if (this.udpServer) {
             this.udpServer.disconnect();
-		    this.udpServer.close();
+            this.udpServer.close();
             this.udpServer = false;
         }
     }
 
-    save()
-    {
-        if (this.id)
-        {
+    save() {
+        if (this.id) {
             // Create a new setting specifically for that device
             service.saveSetting(this.id, 'ip', this.ip);
             service.saveSetting(this.id, 'leds', this.leds);
@@ -163,27 +145,22 @@ export default class GoveeDevice
 
             this.log('Saved device');
             this.printDetails(service);
-        } else
-        {
+        } else {
             this.log('Data not yet received by device, saving device data later');
         }
 
         return this;
     }
 
-    log(text)
-    {
-        if (typeof service !== 'undefined')
-        {
+    log(text) {
+        if (typeof service !== 'undefined') {
             service.log(text);
-        } else
-        {
+        } else {
             device.log(text)
         }
     }
 
-    toCacheJSON()
-    {
+    toCacheJSON() {
         return {
             id: this.id,
             ip: this.ip,
@@ -195,16 +172,15 @@ export default class GoveeDevice
         };
     }
 
-    load(id)
-    {
-        this.id         = id;
-        this.ip         = service.getSetting(id, 'ip');
-        this.leds       = service.getSetting(id, 'leds');
-        this.type       = service.getSetting(id, 'type');
-        this.split      = service.getSetting(id, 'split');
-        this.sku        = service.getSetting(id, 'sku');
-        this.firmware   = service.getSetting(id, 'firmware');
-        this.name       = service.getSetting(id, 'name');
+    load(id) {
+        this.id = id;
+        this.ip = service.getSetting(id, 'ip');
+        this.leds = service.getSetting(id, 'leds');
+        this.type = service.getSetting(id, 'type');
+        this.split = service.getSetting(id, 'split');
+        this.sku = service.getSetting(id, 'sku');
+        this.firmware = service.getSetting(id, 'firmware');
+        this.name = service.getSetting(id, 'name');
         this.uniquePort = service.getSetting(id, 'uniquePort');
 
         this.log('Loaded device');
@@ -213,48 +189,40 @@ export default class GoveeDevice
         return this;
     }
 
-    update(receivedData)
-    {
+    update(receivedData) {
         let hasChanged = false;
-        
-        if (this.id !== receivedData.device)
-        {
+
+        if (this.id !== receivedData.device) {
             this.id = receivedData.device;
             hasChanged = true;
         }
 
-        if (this.sku !== receivedData.sku)
-        {
+        if (this.sku !== receivedData.sku) {
             this.sku = receivedData.sku;
             hasChanged = true;
         }
 
-        if (this.firmware !== receivedData.bleVersionSoft)
-        {
+        if (this.firmware !== receivedData.bleVersionSoft) {
             this.firmware = receivedData.bleVersionSoft;
             hasChanged = true;
         }
-        
-        if (hasChanged)
-        {
-            this.name       = this.generateName();
-            this.testMode   = false;
+
+        if (hasChanged) {
+            this.name = this.generateName();
+            this.testMode = false;
             this.hasChanged = hasChanged;
         }
 
         this.waitingForDeviceUpdate = false;
     }
 
-    updateStatus(receivedData)
-    {
-        if (this.onOff !== receivedData.onOff)
-        {
+    updateStatus(receivedData) {
+        if (this.onOff !== receivedData.onOff) {
             this.log(`Changed onOff from ${this.onOff} to ${receivedData.onOff}`);
             this.onOff = receivedData.onOff;
         }
 
-        if (this.pt !== receivedData.pt)
-        {
+        if (this.pt !== receivedData.pt) {
             this.pt = receivedData.pt;
             this.decodePTData(receivedData.pt);
         }
@@ -263,25 +231,21 @@ export default class GoveeDevice
         this.lastStatus = Date.now();
     }
 
-    generateName()
-    {
+    generateName() {
         return `Govee ${this.sku ? this.sku : 'device'} on ${this.ip}`;
     }
 
-    getName()
-    {
+    getName() {
         return this.name;
     }
 
-    printDetails(logger)
-    {
+    printDetails(logger) {
         logger.log(`Name: ${this.name}`);
         logger.log(`SKU: ${this.sku}`);
         logger.log(`Firmware: ${this.firmware}`);
         logger.log(`IP address: ${this.ip}`);
         logger.log(`Total LED count: ${this.leds}`);
-        switch(this.type)
-        {
+        switch (this.type) {
             // Dreamview mode
             case 1:
                 logger.log(`Protocol: Dreamview`);
@@ -296,8 +260,7 @@ export default class GoveeDevice
                 logger.log(`Protocol: Legacy Razer protocol`);
                 break;
         }
-        switch(this.split)
-        {
+        switch (this.split) {
             case 1:
                 logger.log(`Split: Single logger`);
                 break;
@@ -313,36 +276,28 @@ export default class GoveeDevice
         }
     }
 
-    decodePTData(pt)
-    {
-        if (pt !== null)
-        {
+    decodePTData(pt) {
+        if (pt !== null) {
             const byteArrayPt = decode(pt);
-            if (byteArrayPt[3] == 0xb2)
-            {
+            if (byteArrayPt[3] == 0xb2) {
                 this.razerOn = (byteArrayPt[4] == 0x01) ? true : false;
-                if (this.razerOn)
-                {
+                if (this.razerOn) {
                     this.log('Razer mode is on: ' + pt);
-                } else
-                {
+                } else {
                     this.log('Razer mode is off: ' + pt);
                 }
-            } else
-            {
+            } else {
                 this.log('PT is weird: ' + pt);
             }
         }
     }
 
-    getStatus(now)
-    {
+    getStatus(now) {
         // Sometimes timing gets in the way of receiving status message
         // So after 30 seconds without receiving a status message, we reset and ask again
         if ((now - this.lastStatus) > 30 * 1000) this.waitingForStatusUpdate = false;
 
-        if (!this.waitingForStatusUpdate)
-        {
+        if (!this.waitingForStatusUpdate) {
             this.lastStatus = now;
             this.waitingForStatusUpdate = true;
 
@@ -351,38 +306,32 @@ export default class GoveeDevice
         }
     }
 
-    requestDeviceData(now)
-    {
+    requestDeviceData(now) {
         if ((now - this.lastDeviceDataCheck) > 30 * 1000) this.waitingForDeviceUpdate = false;
 
-        if (!this.waitingForDeviceUpdate)
-        {
+        if (!this.waitingForDeviceUpdate) {
             this.lastDeviceDataCheck = now;
             this.waitingForDeviceUpdate = true;
             this.log('Asking device for device data');
-            const deviceDataRequestPacket = {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }};
+            const deviceDataRequestPacket = { msg: { cmd: 'scan', data: { account_topic: 'reserve' } } };
             this.send(deviceDataRequestPacket, this.statusPort)
         }
     }
 
-    getGradientOff()
-    {
+    getGradientOff() {
         if (this.sku === null) return 1;
         return (GRADIENT_OFF_SKUS.includes(this.sku)) ? 0 : 1;
     }
 
-    getRazerModeCommand(enable)
-    {
+    getRazerModeCommand(enable) {
         let command = encode([0xBB, 0x00, 0x01, 0xB1, enable, enable ? 0x0A : 0x0B]);
         return { msg: { cmd: "razer", data: { pt: command } } };
     }
 
-    getColorCommand(colors)
-    {
+    getColorCommand(colors) {
         let command = {};
 
-        switch(this.type)
-        {
+        switch (this.type) {
             // Dreamview mode
             case 1:
                 command = this.getDreamViewCommand(colors);
@@ -400,27 +349,23 @@ export default class GoveeDevice
                 command = this.getDreamViewV2Command(colors);
                 break;
         }
-        
+
         return { msg: command };
     }
 
-    getDreamViewV2Command(colors)
-    {
+    getDreamViewV2Command(colors) {
         let collection = [
             this.getGradientOff(),
             colors.length,
         ];
-        
-        for (let c = 0; c < colors.length; c++)
-        {
+
+        for (let c = 0; c < colors.length; c++) {
             let color = colors[c];
             collection = collection.concat(color);
 
-            if (c < 36)
-            {
+            if (c < 36) {
                 collection.push(1);
-            } else
-            {
+            } else {
                 collection.push(2);
             }
         }
@@ -433,20 +378,18 @@ export default class GoveeDevice
         ];
 
         let colorsCommand = dreamViewHeader.concat(collection);
-        colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
+        colorsCommand.push(this.calculateXorChecksum(colorsCommand));
 
-        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
+        return { cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
-    getDreamViewCommand(colors)
-    {
+    getDreamViewCommand(colors) {
         let collection = [
             this.getGradientOff(),
             colors.length,
         ];
-        
-        for (let c = 0; c < colors.length; c++)
-        {
+
+        for (let c = 0; c < colors.length; c++) {
             let color = colors[c];
             collection = collection.concat(color);
         }
@@ -459,37 +402,33 @@ export default class GoveeDevice
         ];
 
         let colorsCommand = dreamViewHeader.concat(collection);
-        colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
+        colorsCommand.push(this.calculateXorChecksum(colorsCommand));
 
-        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
+        return { cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
-    getRazerCommand(colors)
-    {
+    getRazerCommand(colors) {
         let razerHeader = [0xBB, 0x00, 0x0E, 0xB0, 0x01, colors.length];
-        
+
         let colorsCommand = razerHeader;
-        for(let c = 0; c < colors.length; c++)
-        {
+        for (let c = 0; c < colors.length; c++) {
             // Color is an [r,g,b] array
             let color = colors[c];
             colorsCommand = colorsCommand.concat(color);
         }
 
         // Add razer checksum
-        colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
+        colorsCommand.push(this.calculateXorChecksum(colorsCommand));
         // colorsCommand.push(0);
 
-        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
+        return { cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
-    getRazerLegacyCommand(colors)
-    {
+    getRazerLegacyCommand(colors) {
         let razerHeader = [0xBB, 0x00, 0x0E, 0xB0, 0x01, colors.length];
-        
+
         let colorsCommand = razerHeader;
-        for(let c = 0; c < colors.length; c++)
-        {
+        for (let c = 0; c < colors.length; c++) {
             // Color is an [r,g,b] array
             let color = colors[c];
             colorsCommand = colorsCommand.concat(color);
@@ -498,56 +437,49 @@ export default class GoveeDevice
         // Add razer checksum
         colorsCommand.push(0);
 
-        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
+        return { cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
-    getSolidColorCommand(colors)
-    {
+    getSolidColorCommand(colors) {
         let color = colors[0];
         return {
             cmd: "colorwc",
             data: {
-                color: {r: color[0], g: color[1], b: color[2]},
+                color: { r: color[0], g: color[1], b: color[2] },
                 colorTemInKelvin: 0
             }
         }
-        
+
     }
 
     calculateXorChecksum(packet) {
         let checksum = 0;
         for (let i = 0; i < packet.length; i++) {
-          checksum ^= packet[i];
+            checksum ^= packet[i];
         }
         return checksum;
     }
 
-    sendRGB(colors, now, frameDelay)
-    {
+    sendRGB(colors, now, frameDelay) {
         if (this.shuttingDown) return;
 
-        if (this.enabled)
-        {
-            if (this.split == 2)
-            {
+        if (this.enabled) {
+            if (this.split == 2) {
                 colors = colors.concat(colors);
             }
 
             // Every 60 minutes check if the device data has updated (like firmware changes)
-            if (now - this.lastDeviceDataCheck > 60 * 60 * 1000)
-            {
+            if (now - this.lastDeviceDataCheck > 60 * 60 * 1000) {
                 this.requestDeviceData(now);
                 // Not sending more commands to not overload
                 return;
             }
-    
+
             // Every 20 seconds check if we need to get the device data, cause ID = null
-            if (now - this.lastRender > 20 * 1000)
-            {
+            if (now - this.lastRender > 20 * 1000) {
                 // Check if we have the device data already
-                if (this.id == null)
-                {
-                    
+                if (this.id == null) {
+
                     // There's no unique ID, so we need to get that data
                     this.requestDeviceData(now);
                     this.lastRender = now;
@@ -557,66 +489,56 @@ export default class GoveeDevice
             }
 
             // If status update is forced do it
-            if (this.forceStatusUpdate)
-            {
+            if (this.forceStatusUpdate) {
                 this.forceStatusUpdate = false;
                 this.getStatus(now);
-            } else if (this.id !== null && (now - this.lastStatus) > 10 * 1000)
-            {
+            } else if (this.id !== null && (now - this.lastStatus) > 10 * 1000) {
                 this.getStatus(now);
             }
 
-            if (!this.onOff && !this.waitingForStatusUpdate)
-            {
+            if (!this.onOff && !this.waitingForStatusUpdate) {
                 this.turnOn();
                 this.forceStatusUpdate = true;
             }
 
-            if (this.type !== PROTOCOL_SINGLE_COLOR)
-            {
-                if (!this.razerOn && !this.waitingForStatusUpdate)
+            if (this.type !== PROTOCOL_SINGLE_COLOR) {
+                // FORCE OCTA FIX: Disable Razer Handshake
+                /* if (!this.razerOn && !this.waitingForStatusUpdate)
                 {
                     this.send(this.getRazerModeCommand(true));
                     this.forceStatusUpdate = true;
                 }
+                */
             }
 
             // If the device is on or we don't have any data yet (we just assume its on)
-            if (this.onOff)
-            {
-                try
-                {
+            if (this.onOff) {
+                try {
                     // Send RGB command first, then do calculations and stuff later
                     let colorCommand = this.getColorCommand(colors);
                     this.send(colorCommand);
-                } catch(ex)
-                {
+                } catch (ex) {
                     device.error(ex.message);
                     device.error(colors);
                 }
 
                 frameDelay = parseInt(frameDelay);
-                if (frameDelay > 0)
-                {
+                if (frameDelay > 0) {
                     device.pause(frameDelay);
                 }
             }
         }
     }
 
-    singleColor(color, now, shutDown)
-    {
-        if (now - this.lastRender > 10000 || shutDown)
-        {
+    singleColor(color, now, shutDown) {
+        if (now - this.lastRender > 10000 || shutDown) {
             // Turn off Razer mode
-            if (this.razerOn)
-            {
+            if (this.razerOn) {
                 this.log('Sending `razer off` command');
                 this.send(this.getRazerModeCommand(false));
             }
 
-            if (!shutDown)
-            {
+            if (!shutDown) {
                 this.getStatus(0);
             }
 
@@ -624,32 +546,28 @@ export default class GoveeDevice
         }
 
         let jsonColor = JSON.stringify(color);
-        if (jsonColor !== this.lastSingleColor || shutDown)
-        {
+        if (jsonColor !== this.lastSingleColor || shutDown) {
             this.lastSingleColor = jsonColor;
             let colorCommand = this.getSolidColorCommand([color]);
             this.log('Sending new color code ' + JSON.stringify(colorCommand));
-            this.send({msg: colorCommand});
+            this.send({ msg: colorCommand });
         }
     }
 
-    send(command, port)
-    {
+    send(command, port) {
         this.udpServer.write(command, this.ip, port ? port : this.port);
     }
 
-    turnOffRazer()
-    {
+    turnOffRazer() {
         this.send(this.getRazerModeCommand(false));
         this.razerOn = false;
         this.pt = null;
     }
 
-    turnOff()
-    {
+    turnOff() {
         // Set to shutdown mode so no new packets are being sent
         this.shuttingDown = true;
-        
+
         // Turn device off
         // Maybe force it a little? :)
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
@@ -663,8 +581,7 @@ export default class GoveeDevice
         this.turnOffRazer();
     }
 
-    turnOn()
-    {
+    turnOn() {
         this.send({ msg: { cmd: "turn", data: { value: 1 } } });
     }
 }
